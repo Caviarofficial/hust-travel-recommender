@@ -1,19 +1,10 @@
 """推荐App页面 - 两个判断题 + 推荐结果"""
 import streamlit as st
-import sqlite3
 import json
 import os
+from db_utils import get_connection
 
-DB_PATH = "survey.db"
 RESULTS_PATH = "results/probabilities.json"
-
-def ensure_db():
-    if os.path.exists(DB_PATH):
-        return
-    from init_db import init_database
-    init_database()
-
-ensure_db()
 
 st.set_page_config(page_title="华科出游推荐", page_icon="🎯")
 st.title("🎯 今天去哪儿玩？")
@@ -29,7 +20,7 @@ def load_recommendations():
 
 
 def get_item_info(item_id):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     row = conn.execute(
         "SELECT * FROM items WHERE item_id = ?", (item_id,)
     ).fetchone()

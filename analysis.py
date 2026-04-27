@@ -1,10 +1,9 @@
 """数据分析与概率计算 - 收集完问卷后运行"""
-import sqlite3
 import pandas as pd
 import os
 import json
+from db_utils import get_connection
 
-DB_PATH = "survey.db"
 OUTPUT_DIR = "results"
 
 PATH_MAPPING = {
@@ -28,7 +27,7 @@ PATH_MAPPING = {
 
 
 def load_data():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     responses = pd.read_sql("SELECT * FROM responses", conn)
     items = pd.read_sql("SELECT * FROM items", conn)
     conn.close()

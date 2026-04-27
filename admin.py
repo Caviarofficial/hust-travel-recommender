@@ -1,23 +1,12 @@
 """数据管理页面 - 查看和导出问卷数据"""
 import streamlit as st
-import sqlite3
 import pandas as pd
-import os
-
-DB_PATH = "survey.db"
-
-def ensure_db():
-    if os.path.exists(DB_PATH):
-        return
-    from init_db import init_database
-    init_database()
-
-ensure_db()
+from db_utils import get_connection
 
 st.set_page_config(page_title="数据管理", page_icon="📊")
 st.title("📊 问卷数据管理")
 
-conn = sqlite3.connect(DB_PATH)
+conn = get_connection()
 
 # 基本统计
 total = conn.execute("SELECT COUNT(*) FROM responses").fetchone()[0]

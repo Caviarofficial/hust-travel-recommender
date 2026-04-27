@@ -1,19 +1,7 @@
 """动态问卷页面 - 给同学们填写"""
 import streamlit as st
-import sqlite3
-import os
 from datetime import datetime
-
-DB_PATH = "survey.db"
-
-def ensure_db():
-    """如果数据库不存在，自动初始化"""
-    if os.path.exists(DB_PATH):
-        return
-    from init_db import init_database
-    init_database()
-
-ensure_db()
+from db_utils import get_connection
 
 st.set_page_config(page_title="华科出游推荐问卷", page_icon="🗺️")
 st.title("🗺️ 华科周末出游推荐问卷")
@@ -144,7 +132,7 @@ st.success("✅ 所有问题已回答完毕！")
 st.write(f"你的路径：**{path_code}-{q5_val}**")
 
 if st.button("📮 提交问卷", type="primary", use_container_width=True):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     conn.execute(
         "INSERT INTO responses (timestamp, q1, q2, q3, q4, q5, path_code) VALUES (?,?,?,?,?,?,?)",
         (datetime.now().isoformat(), q1_val, q2_val, q3_val, q4_val, q5_val, path_code)
