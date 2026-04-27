@@ -7,6 +7,14 @@ import os
 DB_PATH = "survey.db"
 RESULTS_PATH = "results/probabilities.json"
 
+def ensure_db():
+    if os.path.exists(DB_PATH):
+        return
+    from init_db import init_database
+    init_database()
+
+ensure_db()
+
 st.set_page_config(page_title="华科出游推荐", page_icon="🎯")
 st.title("🎯 今天去哪儿玩？")
 st.caption("回答两个问题，为你推荐最合适的出游目的地")

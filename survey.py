@@ -1,9 +1,19 @@
 """动态问卷页面 - 给同学们填写"""
 import streamlit as st
 import sqlite3
+import os
 from datetime import datetime
 
 DB_PATH = "survey.db"
+
+def ensure_db():
+    """如果数据库不存在，自动初始化"""
+    if os.path.exists(DB_PATH):
+        return
+    from init_db import init_database
+    init_database()
+
+ensure_db()
 
 st.set_page_config(page_title="华科出游推荐问卷", page_icon="🗺️")
 st.title("🗺️ 华科周末出游推荐问卷")
