@@ -89,9 +89,10 @@ def _init_at(db_path):
         PATH_MAPPING = {
             "A-A-A-A":[2,3,10],"A-A-A-B":[1,14,4],"A-A-B-A":[9,7],"A-A-B-B":[8,6],
             "A-B-A-A":[1,14],"A-B-A-B":[4,13],"A-B-B-A":[11,12],"A-B-B-B":[5,15,6],
-            "B-A-A-A":[16,17],"B-A-A-B":[16,29,17],"B-A-B-A":[19,20,28,30],
-            "B-A-B-B":[21,22],"B-B-A-A":[18,24],"B-B-A-B":[23,26],
-            "B-B-B-A":[25,23],"B-B-B-B":[27],
+            "B-A-A-A":[19,20],"B-A-A-B":[28,30],
+            "B-A-B-A":[17,29],"B-A-B-B":[21,22],
+            "B-B-A-A":[18,24],"B-B-A-B":[23,26],
+            "B-B-B-A":[25,23],"B-B-B-B":[16,27],
         }
         for path_code, item_ids in PATH_MAPPING.items():
             for priority, item_id in enumerate(item_ids):
