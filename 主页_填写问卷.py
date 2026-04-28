@@ -106,10 +106,10 @@ q4_val = q4[0]
 
 # ========== 第5层 ==========
 st.divider()
-path_code = f"{q1_val}-{q2_val}-{q3_val}-{q4_val}"
+path_prefix = f"{q1_val}-{q2_val}-{q3_val}-{q4_val}"
 free_paths = ["A-A-A-A", "A-A-A-B", "A-B-A-A",
               "B-A-A-A", "B-A-A-B", "B-A-B-A", "B-A-B-B"]
-if path_code in free_paths:
+if path_prefix in free_paths:
     q5 = st.radio(
         "**Q5：打算玩多久？**",
         ["A. 半天以内（2-3小时）", "B. 一整天"],
@@ -125,11 +125,12 @@ else:
 if q5 is None:
     st.stop()
 q5_val = q5[0]
+path_code = f"{q1_val}-{q2_val}-{q3_val}-{q4_val}-{q5_val}"
 
 # ========== 提交 ==========
 st.divider()
 st.success("✅ 所有问题已回答完毕！")
-st.write(f"你的路径：**{path_code}-{q5_val}**")
+st.write(f"你的路径：**{path_code}**")
 
 if st.button("📮 提交问卷", type="primary", use_container_width=True):
     conn = get_connection()

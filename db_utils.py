@@ -87,12 +87,22 @@ def _init_at(db_path):
         c.executemany("INSERT INTO items VALUES (?,?,?,?,?,?,?)", ITEMS)
 
         PATH_MAPPING = {
-            "A-A-A-A":[2,3,10],"A-A-A-B":[1,14,4],"A-A-B-A":[9,7],"A-A-B-B":[8,6],
-            "A-B-A-A":[1,14],"A-B-A-B":[4,13],"A-B-B-A":[11,12],"A-B-B-B":[5,15,6],
-            "B-A-A-A":[19,20],"B-A-A-B":[28,30],
-            "B-A-B-A":[17,29],"B-A-B-B":[21,22],
-            "B-B-A-A":[18,24],"B-B-A-B":[23,26],
-            "B-B-B-A":[25,23],"B-B-B-B":[16,27],
+            "A-A-A-A-A":[3],"A-A-A-A-B":[2,10],
+            "A-A-A-B-A":[14],"A-A-A-B-B":[1,4],
+            "A-B-A-A-A":[14],"A-B-A-A-B":[1],
+            "B-A-A-A-A":[20],"B-A-A-A-B":[19],
+            "B-A-A-B-A":[28],"B-A-A-B-B":[30],
+            "B-A-B-A-A":[17],"B-A-B-A-B":[29],
+            "B-A-B-B-A":[22],"B-A-B-B-B":[21],
+            "A-A-B-A-A":[9],"A-A-B-A-B":[7],
+            "A-A-B-B-A":[8],"A-A-B-B-B":[6],
+            "A-B-A-B-A":[4,13],"A-B-A-B-B":[13,4],
+            "A-B-B-A-A":[12,11],"A-B-B-A-B":[11,12],
+            "A-B-B-B-A":[5,6,15],"A-B-B-B-B":[15,6,5],
+            "B-B-A-A-A":[18,24],"B-B-A-A-B":[24,18],
+            "B-B-A-B-A":[23],"B-B-A-B-B":[26],
+            "B-B-B-A-A":[25,23],"B-B-B-A-B":[23,25],
+            "B-B-B-B-A":[16],"B-B-B-B-B":[27],
         }
         for path_code, item_ids in PATH_MAPPING.items():
             for priority, item_id in enumerate(item_ids):
