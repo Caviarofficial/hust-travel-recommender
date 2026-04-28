@@ -133,12 +133,16 @@ st.success("✅ 所有问题已回答完毕！")
 st.write(f"你的路径：**{path_code}**")
 
 if st.button("📮 提交问卷", type="primary", use_container_width=True):
-    conn = get_connection()
-    conn.execute(
-        "INSERT INTO responses (timestamp, q1, q2, q3, q4, q5, path_code) VALUES (?,?,?,?,?,?,?)",
-        (datetime.now().isoformat(), q1_val, q2_val, q3_val, q4_val, q5_val, path_code)
-    )
-    conn.commit()
-    conn.close()
-    st.balloons()
-    st.success("🎉 提交成功！感谢你的参与！")
+    if st.session_state.get("submitted"):
+        st.warning("你已经提交过了，刷新页面可重新填写。")
+    else:
+        conn = get_connection()
+        conn.execute(
+            "INSERT INTO responses (timestamp, q1, q2, q3, q4, q5, path_code) VALUES (?,?,?,?,?,?,?)",
+            (datetime.now().isoformat(), q1_val, q2_val, q3_val, q4_val, q5_val, path_code)
+        )
+        conn.commit()
+        conn.close()
+        st.session_state["submitted"] = True
+        st.balloons()
+        st.success("🎉 提交成功！感谢你的参与！")
