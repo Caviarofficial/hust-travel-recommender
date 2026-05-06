@@ -50,6 +50,18 @@ def _init_at(db_path):
         )
     """)
 
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS click_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            j1 TEXT,
+            j2 TEXT,
+            recommended_item TEXT,
+            recommended_prob REAL,
+            clicked INTEGER
+        )
+    """)
+
     # 只在 items 表为空时插入数据
     if c.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 0:
         ITEMS = [
@@ -118,4 +130,16 @@ def get_connection():
     db_path = get_db_path()
     if not os.path.exists(db_path):
         _init_at(db_path)
-    return sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS click_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            j1 TEXT, j2 TEXT,
+            recommended_item TEXT,
+            recommended_prob REAL,
+            clicked INTEGER
+        )
+    """)
+    conn.commit()
+    return conn
