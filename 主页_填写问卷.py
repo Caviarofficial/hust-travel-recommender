@@ -1,148 +1,188 @@
-"""主入口 - 动态问卷页面"""
+"""主入口 - 推荐验证页面（课堂验证算法命中率）"""
 import streamlit as st
+import csv
+import os
+from collections import Counter
 from datetime import datetime
 from db_utils import get_connection
 
 st.set_page_config(
     page_title="华科出游推荐",
-    page_icon="🗺️",
+    page_icon="🎯",
     layout="centered"
 )
 
-st.title("🗺️ 华科周末出游推荐问卷")
-st.caption("只需回答5个问题，帮助我们为你推荐最合适的出游目的地！")
+st.title("🎯 今天去哪儿玩？")
+st.caption("回答两个问题，系统为你推荐最合适的出游目的地")
 st.divider()
 
-# ========== 第1层 ==========
-q1 = st.radio(
-    "**Q1：今天想走多远？**",
-    ["A. 就近逛逛（光谷/校内周边，30分钟内）",
-     "B. 出去探索（愿意跨区，40分钟以上）"],
-    index=None, key="q1"
+PATH_MAPPING = {
+    "A-A-A-A-A": [3], "A-A-A-A-B": [2, 10],
+    "A-A-A-B-A": [14], "A-A-A-B-B": [1, 4],
+    "A-B-A-A-A": [14], "A-B-A-A-B": [1],
+    "B-A-A-A-A": [20], "B-A-A-A-B": [19],
+    "B-A-A-B-A": [28], "B-A-A-B-B": [30],
+    "B-A-B-A-A": [17], "B-A-B-A-B": [29],
+    "B-A-B-B-A": [22], "B-A-B-B-B": [21],
+    "A-A-B-A-A": [9], "A-A-B-A-B": [7],
+    "A-A-B-B-A": [8], "A-A-B-B-B": [6],
+    "A-B-A-B-A": [4, 13], "A-B-A-B-B": [13, 4],
+    "A-B-B-A-A": [12, 11], "A-B-B-A-B": [11, 12],
+    "A-B-B-B-A": [5, 6, 15], "A-B-B-B-B": [15, 6, 5],
+    "B-B-A-A-A": [18, 24], "B-B-A-A-B": [24, 18],
+    "B-B-A-B-A": [23], "B-B-A-B-B": [26],
+    "B-B-B-A-A": [25, 23], "B-B-B-A-B": [23, 25],
+    "B-B-B-B-A": [16], "B-B-B-B-B": [27],
+}
+
+ITEM_NAMES = {
+    1: "东湖绿道（磨山段）骑行", 2: "东湖落雁景区散步",
+    3: "华科校内喻家湖环湖", 4: "华科森林公园徒步",
+    5: "光谷步行街逛街", 6: "光谷天地探店",
+    7: "K11购物艺术中心", 8: "关山大道咖啡馆",
+    9: "光谷书房/独立书店", 10: "藏龙岛湿地公园",
+    11: "光谷周边密室逃脱", 12: "光谷周边剧本杀",
+    13: "光谷国际网球中心", 14: "花山生态城绿道骑行",
+    15: "鲁巷广场/光谷广场聚餐", 16: "黄鹤楼",
+    17: "昙华林文艺街区", 18: "粮道街美食探店",
+    19: "汉口江滩散步", 20: "武昌江滩/长江大桥",
+    21: "湖北省博物馆", 22: "武汉美术馆",
+    23: "楚河汉街", 24: "万松园美食街",
+    25: "江汉路步行街", 26: "武汉天地",
+    27: "武汉欢乐谷", 28: "东湖樱花园",
+    29: "武汉大学（建筑/樱花）", 30: "龟山公园/汉阳江滩",
+}
+
+ITEM_TAGS = {
+    1: "🚴 骑行 · 户外 · 免费", 2: "🌿 散步 · 安静 · 免费",
+    3: "🌊 环湖 · 安静 · 免费", 4: "🌲 徒步 · 运动 · 免费",
+    5: "🛍️ 逛街 · 社交 · 中消费", 6: "☕ 探店 · 文艺 · 中消费",
+    7: "🎨 看展 · 购物 · 中消费", 8: "☕ 咖啡 · 安静 · 低消费",
+    9: "📖 书店 · 文艺 · 免费", 10: "🦆 湿地 · 安静 · 免费",
+    11: "🔐 密室 · 刺激 · 中消费", 12: "🎭 剧本杀 · 社交 · 中消费",
+    13: "🎾 网球 · 运动 · 低消费", 14: "🚴 骑行 · 户外 · 免费",
+    15: "🍜 聚餐 · 社交 · 中消费", 16: "🏯 历史 · 风景 · 中消费",
+    17: "🎨 文艺 · 拍照 · 免费", 18: "🍜 美食 · 小吃 · 低消费",
+    19: "🌊 江景 · 散步 · 免费", 20: "🌉 江景 · 散步 · 免费",
+    21: "🏛️ 文化 · 看展 · 免费", 22: "🖼️ 艺术 · 安静 · 免费",
+    23: "🛍️ 购物 · 美食 · 中消费", 24: "🍜 美食 · 小吃 · 低消费",
+    25: "🛍️ 逛街 · 购物 · 中消费", 26: "✨ 文艺 · 美食 · 高消费",
+    27: "🎢 游乐 · 刺激 · 高消费", 28: "🌸 樱花 · 拍照 · 低消费",
+    29: "🏫 校园 · 拍照 · 免费", 30: "🌊 江景 · 公园 · 免费",
+}
+
+
+def load_survey_paths():
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "问卷数据.csv")
+    if not os.path.exists(csv_path):
+        return []
+    paths = []
+    with open(csv_path, "r", encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            paths.append(row["path_code"])
+    return paths
+
+
+def compute_recommendation(j1_yes, j2_yes, survey_paths):
+    N = len(survey_paths)
+    if N == 0:
+        return None, 0, {}
+    path_counts = Counter(survey_paths)
+    path_priors = {p: (path_counts.get(p, 0) + 1) / (N + 32) for p in PATH_MAPPING}
+    prefix = ("B" if j1_yes else "A") + "-" + ("B" if j2_yes else "A")
+    matching = [p for p in PATH_MAPPING if p.startswith(prefix)]
+    total = sum(path_priors[p] for p in matching)
+    path_conds = {p: path_priors[p] / total for p in matching}
+    item_scores = {}
+    for p in matching:
+        items = PATH_MAPPING[p]
+        raw = {iid: 1.0 / (rank + 1) for rank, iid in enumerate(items)}
+        w_sum = sum(raw.values())
+        for iid, w in raw.items():
+            item_scores[iid] = item_scores.get(iid, 0) + path_conds[p] * w / w_sum
+    sorted_items = sorted(item_scores.items(), key=lambda x: x[1], reverse=True)
+    best_id, best_prob = sorted_items[0]
+    return best_id, best_prob, dict(sorted_items)
+
+
+def log_click(j1, j2, item_name, prob, clicked):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO click_logs (timestamp, j1, j2, recommended_item, recommended_prob, clicked) VALUES (?,?,?,?,?,?)",
+        (datetime.now().isoformat(), j1, j2, item_name, prob, clicked)
+    )
+    conn.commit()
+    conn.close()
+
+
+# ========== 主界面 ==========
+
+if st.session_state.get("rec_submitted"):
+    st.success("感谢参与验证！你的反馈已记录。")
+    st.info("刷新页面可重新参与。")
+    st.stop()
+
+j1 = st.radio(
+    "**你今天想去远一点的地方吗？**（单程超过40分钟）",
+    ["是", "否"], index=None, horizontal=True, key="j1"
 )
 
-if q1 is None:
-    st.info("👆 请从第1题开始作答")
+j2 = st.radio(
+    "**你今天想进行需要体力的活动吗？**（如爬山、骑行、逛游乐场）",
+    ["是", "否"], index=None, horizontal=True, key="j2"
+)
+
+if j1 is None or j2 is None:
+    st.info("👆 请回答以上两个问题")
     st.stop()
-q1_val = q1[0]
 
-# ========== 第2层 ==========
 st.divider()
-if q1_val == "A":
-    q2 = st.radio(
-        "**Q2：今天的精力状态如何？**",
-        ["A. 想放松（安静、慢节奏、不想太累）",
-         "B. 精力充沛（想动起来、找刺激）"],
-        index=None, key="q2"
-    )
-else:
-    q2 = st.radio(
-        "**Q2：今天的精力状态如何？**",
-        ["A. 想放松（散步、看展、拍照，不想太累）",
-         "B. 精力充沛（愿意走很多路、逛街、找美食、游乐场）"],
-        index=None, key="q2"
-    )
 
-if q2 is None:
+survey_paths = load_survey_paths()
+if not survey_paths:
+    st.error("未找到问卷数据文件（问卷数据.csv）")
     st.stop()
-q2_val = q2[0]
 
-# ========== 第3层 ==========
-st.divider()
-branch_2 = f"{q1_val}-{q2_val}"
-q3_options = {
-    "A-A": ("**Q3：想待在什么样的环境里？**",
-            ["A. 户外透气（公园、湖边、绿道）",
-             "B. 室内舒适（咖啡馆、书店、展厅）"]),
-    "A-B": ("**Q3：想怎么『动』起来？**",
-            ["A. 体育运动（骑行、球类、徒步）",
-             "B. 娱乐社交（密室、剧本杀、逛街聚餐）"]),
-    "B-A": ("**Q3：更想看什么？**",
-            ["A. 自然风景（江滩、花园、公园）",
-             "B. 文化艺术（老街、校园、博物馆、美术馆）"]),
-    "B-B": ("**Q3：今天的重点是？**",
-            ["A. 美食探店（找好吃的，逛美食街）",
-             "B. 逛街/观光/游乐（商场、景点、游乐场）"]),
-}
-q3_title, q3_opts = q3_options[branch_2]
-q3 = st.radio(q3_title, q3_opts, index=None, key="q3")
+best_id, best_prob, all_scores = compute_recommendation(
+    j1 == "是", j2 == "是", survey_paths
+)
 
-if q3 is None:
+if best_id is None:
+    st.error("计算推荐失败")
     st.stop()
-q3_val = q3[0]
 
-# ========== 第4层 ==========
-st.divider()
-branch_3 = f"{q1_val}-{q2_val}-{q3_val}"
-q4_options = {
-    "A-A-A": ("**Q4：今天和几个人一起？**",
-              ["A. 独处或1-2人", "B. 3人以上"]),
-    "A-A-B": ("**Q4：更想做什么？**",
-              ["A. 看书/看展（文艺、知识类）",
-               "B. 喝咖啡/甜品（消费享受型）"]),
-    "A-B-A": ("**Q4：想要多大运动量？**",
-              ["A. 中等（骑行、快走）", "B. 高强度（爬山、球赛）"]),
-    "A-B-B": ("**Q4：更想玩什么？**",
-              ["A. 沉浸体验（密室逃脱、剧本杀）",
-               "B. 逛街聚餐（商场、餐厅）"]),
-    "B-A-A": ("**Q4：想去哪个方向？**",
-              ["A. 江边散步（汉口江滩、武昌江滩）",
-               "B. 湖边/山边（东湖樱花园、龟山公园）"]),
-    "B-A-B": ("**Q4：更偏向哪种？**",
-              ["A. 历史建筑/老街（昙华林、武大校园）",
-               "B. 艺术展览（省博物馆、美术馆）"]),
-    "B-B-A": ("**Q4：想吃什么风格？**",
-              ["A. 街头小吃/地道老店", "B. 商圈餐厅/网红店"]),
-    "B-B-B": ("**Q4：更想去？**",
-              ["A. 逛街购物（步行街、商场）",
-               "B. 观光/游乐（黄鹤楼、欢乐谷）"]),
-}
-q4_title, q4_opts = q4_options[branch_3]
-q4 = st.radio(q4_title, q4_opts, index=None, key="q4")
+best_name = ITEM_NAMES[best_id]
+best_tags = ITEM_TAGS[best_id]
 
-if q4 is None:
-    st.stop()
-q4_val = q4[0]
+st.markdown("### 为你推荐")
+st.markdown(f"""
+<div style="border: 2px solid #4FC3F7; border-radius: 12px; padding: 24px;
+            background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+            text-align: center; margin: 16px 0;">
+    <h2 style="margin: 0 0 8px 0; color: #1565C0;">{best_name}</h2>
+    <p style="margin: 0 0 12px 0; font-size: 16px; color: #555;">{best_tags}</p>
+    <p style="margin: 0; font-size: 14px; color: #888;">推荐置信度: {best_prob*100:.1f}%</p>
+</div>
+""", unsafe_allow_html=True)
 
-# ========== 第5层 ==========
-st.divider()
-path_prefix = f"{q1_val}-{q2_val}-{q3_val}-{q4_val}"
-free_paths = ["A-A-A-A", "A-A-A-B", "A-B-A-A",
-              "B-A-A-A", "B-A-A-B", "B-A-B-A", "B-A-B-B"]
-if path_prefix in free_paths:
-    q5 = st.radio(
-        "**Q5：打算玩多久？**",
-        ["A. 半天以内（2-3小时）", "B. 一整天"],
-        index=None, key="q5"
-    )
-else:
-    q5 = st.radio(
-        "**Q5：今天愿意花多少钱（不含餐饮）？**",
-        ["A. 尽量免费（0-30元）", "B. 可以花点（50-200元）"],
-        index=None, key="q5"
-    )
+st.markdown("")
+st.markdown("**你对这个推荐感兴趣吗？**")
 
-if q5 is None:
-    st.stop()
-q5_val = q5[0]
-path_code = f"{q1_val}-{q2_val}-{q3_val}-{q4_val}-{q5_val}"
-
-# ========== 提交 ==========
-st.divider()
-st.success("✅ 所有问题已回答完毕！")
-st.write(f"你的路径：**{path_code}**")
-
-if st.button("📮 提交问卷", type="primary", use_container_width=True):
-    if st.session_state.get("submitted"):
-        st.warning("你已经提交过了，刷新页面可重新填写。")
-    else:
-        conn = get_connection()
-        conn.execute(
-            "INSERT INTO responses (timestamp, q1, q2, q3, q4, q5, path_code) VALUES (?,?,?,?,?,?,?)",
-            (datetime.now().isoformat(), q1_val, q2_val, q3_val, q4_val, q5_val, path_code)
-        )
-        conn.commit()
-        conn.close()
-        st.session_state["submitted"] = True
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("✅ 想去！", type="primary", use_container_width=True):
+        log_click(j1, j2, best_name, best_prob, 1)
+        st.session_state["rec_submitted"] = True
         st.balloons()
-        st.success("🎉 提交成功！感谢你的参与！")
+        st.rerun()
+with col2:
+    if st.button("❌ 不感兴趣", use_container_width=True):
+        log_click(j1, j2, best_name, best_prob, 0)
+        st.session_state["rec_submitted"] = True
+        st.rerun()
+
+with st.expander("查看完整推荐排名（Top 10）"):
+    for rank, (iid, prob) in enumerate(list(all_scores.items())[:10], 1):
+        name = ITEM_NAMES.get(iid, f"项目{iid}")
+        bar_len = int(prob / best_prob * 20)
+        st.write(f"{rank}. {name}  {'█' * bar_len} {prob*100:.1f}%")
