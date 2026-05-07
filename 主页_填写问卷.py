@@ -245,9 +245,6 @@ st.markdown(f"""
             💡 <b>你知道吗？</b> {info['hook']}
         </p>
     </div>
-    <p style="margin: 16px 0 0 0; font-size: 13px; color: #888; text-align: center;">
-        推荐置信度: {best_prob*100:.1f}% · 基于{len(survey_paths)}位同学的偏好数据
-    </p>
 </div>
 """, unsafe_allow_html=True)
 
